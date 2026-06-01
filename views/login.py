@@ -6,7 +6,7 @@ from sheets_client import active_players, check_passcode
 
 def render() -> None:
     st.title("World Cup 2026 — Prediction League")
-    st.caption("Sign in with your name and the passcode the sent you. For any login issues contact Jez/Rohan.")
+    st.caption("Sign in with your name and the passcode sent to you. For any login issues contact Jez/Rohan.")
 
     players = active_players()
     if players.empty:
