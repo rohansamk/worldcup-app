@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c \"import py_compile; py_compile.compile\\('sheets_client.py', doraise=True\\); py_compile.compile\\('config.py', doraise=True\\); print\\('OK'\\)\")"
+    ]
+  }
+}
