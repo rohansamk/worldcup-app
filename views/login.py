@@ -5,6 +5,10 @@ from sheets_client import active_players, check_passcode
 
 
 def render() -> None:
+    st.image(
+        "https://images.unsplash.com/photo-1527871252447-4ce32da643c6?q=80&w=1600&auto=format&fit=crop",
+        use_container_width=True,
+    )
     st.title("World Cup 2026 Prediction League")
     st.markdown("**Pick every match. Build your bracket. Win the bragging rights.**")
     st.divider()

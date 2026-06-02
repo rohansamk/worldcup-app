@@ -7,6 +7,10 @@ st.set_page_config(page_title="World Cup 2026 Prediction League", page_icon="⚽
 
 
 def _sidebar() -> str:
+    st.sidebar.image(
+        "https://images.unsplash.com/photo-1527871252447-4ce32da643c6?q=80&w=1600&auto=format&fit=crop",
+        use_container_width=True,
+    )
     st.sidebar.title("⚽ WC 2026")
     st.sidebar.caption("Prediction League")
     st.sidebar.divider()
