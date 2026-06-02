@@ -8,13 +8,16 @@ st.set_page_config(page_title="World Cup 2026 Prediction League", page_icon="⚽
 
 def _sidebar() -> str:
     st.sidebar.title("⚽ WC 2026")
+    st.sidebar.caption("Prediction League")
+    st.sidebar.divider()
     player = st.session_state.get("player")
     if player:
         st.sidebar.markdown(f"Signed in as **{player}**")
-        if st.sidebar.button("Sign out"):
+        if st.sidebar.button("Sign out", use_container_width=True):
             for k in ("player", "admin_ok"):
                 st.session_state.pop(k, None)
             st.rerun()
+        st.sidebar.divider()
     page = st.sidebar.radio(
         "Navigate",
         ["Make Predictions", "Leaderboard", "Admin"],

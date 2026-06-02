@@ -5,8 +5,9 @@ from sheets_client import active_players, check_passcode
 
 
 def render() -> None:
-    st.title("World Cup 2026 — Prediction League")
-    st.caption("Sign in with your name and the passcode sent to you. For any login issues contact Jez/Rohan.")
+    st.title("World Cup 2026 Prediction League")
+    st.markdown("**Pick every match. Build your bracket. Win the bragging rights.**")
+    st.divider()
 
     players = active_players()
     if players.empty:
@@ -17,10 +18,13 @@ def render() -> None:
         return
 
     names = sorted(players["Name"].astype(str).tolist())
-    with st.form("login"):
-        name = st.selectbox("Your name", names, index=None, placeholder="Select your name…")
-        passcode = st.text_input("Passcode", type="password")
-        submitted = st.form_submit_button("Sign in", type="primary")
+    _, mid, _ = st.columns([1, 2, 1])
+    with mid:
+        st.caption("Sign in with your name and the passcode sent to you. For any login issues contact Jez/Rohan.")
+        with st.form("login"):
+            name = st.selectbox("Your name", names, index=None, placeholder="Select your name…")
+            passcode = st.text_input("Passcode", type="password")
+            submitted = st.form_submit_button("Sign in", type="primary", use_container_width=True)
 
     if not submitted:
         return

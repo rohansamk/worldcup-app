@@ -24,9 +24,11 @@ MATCH_COLS = {"MatchID", "Group", "Team1", "Team2"}
 
 def render() -> None:
     st.title("Admin")
+    st.caption("Seed matches once, then enter results as the tournament unfolds. Players can't see this page.")
     if not _auth_gate():
         return
 
+    st.divider()
     tabs = st.tabs(["Setup", "Match results", "Group standings", "Knockout actuals"])
     with tabs[0]: _setup_section()
     with tabs[1]: _match_results_section()
