@@ -38,6 +38,7 @@ from sheets_client import (
 def render() -> None:
     player = st.session_state.player
     st.title(f"Your predictions, {player}")
+    st.caption("Fill in every section. You can revise any pick until the deadline passes.")
     locked = is_locked()
     _deadline_header(locked)
 
