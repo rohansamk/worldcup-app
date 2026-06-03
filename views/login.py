@@ -5,7 +5,7 @@ from sheets_client import active_players, check_passcode
 
 
 def render() -> None:
-    st.title("World Cup 2026 Prediction League")
+    st.title("The Great Own Brands 2026 World Cup Fantasy Football Competition")
     st.markdown("**Pick every match. Build your bracket. Win the bragging rights.**")
     st.divider()
 
