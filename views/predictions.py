@@ -22,7 +22,7 @@ from __future__ import annotations
 
 import streamlit as st
 
-from config import ALL_TEAMS, DISPLAY_TZ, DISPLAY_TZ_LABEL, DRAW, GROUPS, TEAM_TO_GROUP
+from config import ALL_TEAMS, DISPLAY_TZ, DISPLAY_TZ_LABEL, DRAW, GROUPS, SCORING, TEAM_TO_GROUP
 from matches import generate_group_matches
 from sheets_client import (
     invalidate,
@@ -261,7 +261,12 @@ def _section_knockout(
     prev_label: str,
 ) -> None:
     st.header(f"{_HEADER_NUMBER[stage]}. {label}")
-    st.caption(f"Pick exactly {count} winners from your {prev_label}.")
+    pts = SCORING[stage.lower()]
+    unit = "pt" if pts == 1 else "pts"
+    st.caption(
+        f"Pick exactly {count} winners from your {prev_label}. "
+        f"{pts} {unit} per team that reaches the {stage}."
+    )
 
     stored = existing.get(stage, [])
     _stale_hint(stored, pool, locked)
