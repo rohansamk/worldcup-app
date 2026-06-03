@@ -73,23 +73,6 @@ def _player_group_advancement(
     return first_pts, second_pts
 
 
-def _actual_r32_set(
-    standings: dict[str, dict[str, str]],
-    bracket: dict[str, list[str]],
-) -> set[str]:
-    teams: set[str] = set()
-    for g in GROUPS:
-        s = standings.get(g, {})
-        for slot in ("First", "Second"):
-            t = s.get(slot, "")
-            if t:
-                teams.add(t)
-    for t in bracket.get("ThirdPlaced", []):
-        if t:
-            teams.add(t)
-    return teams
-
-
 def _player_r32_set(player_bracket: dict[str, list[str]]) -> set[str]:
     teams: set[str] = set()
     for key in ("Group1st", "Group2nd", "ThirdPlaced"):
@@ -112,7 +95,6 @@ def compute_scores() -> pd.DataFrame:
     match_results = actual_match_results()
     standings = actual_standings()
     bracket = actual_bracket()
-    actual_r32 = _actual_r32_set(standings, bracket)
 
     pred_matches = read_df(TAB_PRED_MATCHES)
     pred_bracket = read_df(TAB_PRED_BRACKET)
@@ -137,13 +119,22 @@ def compute_scores() -> pd.DataFrame:
 
         # Cascade-filter each downstream round through the previous effective
         # set so stale picks from upstream changes are ignored at scoring time.
+        # eff_r32 is the 32-team set used as the R16 cascade pool; it is NOT
+        # used to score the R32 line (group winners and runners-up are already
+        # credited on their own lines, so re-scoring them here would double-count).
         eff_r32   = _player_r32_set(player_b)
         eff_r16   = set(player_b.get("R16",   [])) & eff_r32
         eff_qf    = set(player_b.get("QF",    [])) & eff_r16
         eff_sf    = set(player_b.get("SF",    [])) & eff_qf
         eff_final = set(player_b.get("Final", [])) & eff_sf
 
-        r32_pts   = _intersect_score(eff_r32,   actual_r32,                SCORING["r32"])
+        # R32 line: score ONLY the 8 ThirdPlaced picks that turned out to be
+        # actual third-placed advancers. Max 8 points from this line.
+        r32_pts   = _intersect_score(
+            player_b.get("ThirdPlaced", []),
+            bracket.get("ThirdPlaced", []),
+            SCORING["r32"],
+        )
         r16_pts   = _intersect_score(eff_r16,   bracket.get("R16",   []),  SCORING["r16"])
         qf_pts    = _intersect_score(eff_qf,    bracket.get("QF",    []),  SCORING["qf"])
         sf_pts    = _intersect_score(eff_sf,    bracket.get("SF",    []),  SCORING["sf"])

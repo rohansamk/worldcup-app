@@ -42,7 +42,7 @@ SCORING: dict[str, int] = {
     "group_match": 1,
     "group_first": 2,
     "group_second": 1,
-    "r32": 2,
+    "r32": 1,
     "r16": 3,
     "qf": 4,
     "sf": 5,

@@ -210,7 +210,7 @@ def _section_group_standings(player: str, locked: bool, existing: dict[str, list
 
 def _section_r32(player: str, locked: bool, existing: dict[str, list[str]]) -> None:
     st.header("3. Round of 32")
-    st.caption("Your 1st and 2nd picks (24 teams) auto-advance. Choose which 8 of your 12 third-placed picks join them. 2 pts per R32 team that actually advances.")
+    st.caption("Your 1st and 2nd picks (24 teams) auto-advance (already scored on the Group 1st / Group 2nd lines). Choose which 8 of your 12 third-placed picks join them in R32. 1 pt per correct third-placed pick, max 8.")
 
     third_pool = existing.get("Group3rd", [])
     stored = existing.get("ThirdPlaced", [])

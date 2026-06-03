@@ -53,7 +53,7 @@ def render() -> None:
 - Correct group match result: **{SCORING['group_match']} pt**
 - Correct group winner (1st): **{SCORING['group_first']} pts**
 - Correct group runner-up (2nd): **{SCORING['group_second']} pt**
-- Correct R32 advancement (per team): **{SCORING['r32']} pts**
+- Correct third-placed advancer pick (per team, max 8): **{SCORING['r32']} pt**
 - Correct R16 advancement (per team): **{SCORING['r16']} pts**
 - Correct QF advancement (per team): **{SCORING['qf']} pts**
 - Correct SF advancement (per team): **{SCORING['sf']} pts**
