@@ -19,7 +19,7 @@ def render() -> None:
 
     df = compute_scores()
     if df.empty:
-        st.info("No active players yet — add some to the Google Sheet's Players tab.")
+        st.info("No active players yet, add some to the Google Sheet's Players tab.")
         return
 
     st.divider()
@@ -31,7 +31,7 @@ def render() -> None:
             row = df.iloc[i]
             col.metric(label=label, value=str(row["Player"]), delta=f"{int(row['Total'])} pts", delta_color="off")
         else:
-            col.metric(label=label, value="—", delta="0 pts", delta_color="off")
+            col.metric(label=label, value="-", delta="0 pts", delta_color="off")
 
     st.divider()
     st.subheader("Full standings")
@@ -59,5 +59,7 @@ def render() -> None:
 - Correct SF advancement (per team): **{SCORING['sf']} pts**
 - Correct finalist (per team): **{SCORING['final']} pts**
 - Correct champion: **{SCORING['champion']} pts**
+- Correct Golden Boot (top scorer): **{SCORING['golden_boot']} pts**
+- Correct Golden Ball (best player): **{SCORING['golden_ball']} pts**
 """
         )

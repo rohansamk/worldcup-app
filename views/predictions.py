@@ -1,21 +1,21 @@
-"""Make Predictions — one continuous, editable flow.
+"""Make Predictions - one continuous, editable flow.
 
 All sections share one deadline (`deadline_group` in the Config tab). Until
 that deadline the player can revise any section freely. After it, everything
 on the page is read-only.
 
 Flow (top to bottom):
-  1. Group Matches      — pick winner/draw for each of the 72 matches
-  2. Group Standings    — pick 1st / 2nd / 3rd for each group
-  3. R32                — pick which 8 of your 12 third-placed teams advance
-  4. R16                — pick 16 winners from your R32 set
-  5. QF                 — pick 8 from your R16
-  6. SF                 — pick 4 from your QF
-  7. Final              — pick 2 from your SF
-  8. Champion           — pick 1 from your Final
+  1. Group Matches      - pick winner/draw for each of the 72 matches
+  2. Group Standings    - pick 1st / 2nd / 3rd for each group
+  3. R32                - pick which 8 of your 12 third-placed teams advance
+  4. R16                - pick 16 winners from your R32 set
+  5. QF                 - pick 8 from your R16
+  6. SF                 - pick 4 from your QF
+  7. Final              - pick 2 from your SF
+  8. Champion           - pick 1 from your Final
 
 The "available options" for each knockout round come from the player's own
-picks in the previous round — this is the cascade and it's enforced at edit
+picks in the previous round - this is the cascade and it's enforced at edit
 time AND at scoring time (see scoring.py).
 """
 from __future__ import annotations
@@ -45,7 +45,7 @@ def render() -> None:
     existing_bracket = player_bracket_picks(player)
     existing_matches = player_match_picks(player)
 
-    # Effective cascade pools — mirrors scoring.py so what you see is what scores.
+    # Effective cascade pools - mirrors scoring.py so what you see is what scores.
     # If an upstream change makes a downstream pick invalid, it falls out here.
     eff_r32 = sorted(
         set(existing_bracket.get("Group1st", []))
@@ -72,6 +72,8 @@ def render() -> None:
     _section_knockout(player, locked, existing_bracket, stage="Final", count=2,  pool=eff_sf,   label="Finalists",      prev_label="SF picks")
     st.divider()
     _section_champion(player, locked, existing_bracket, pool=eff_final)
+    st.divider()
+    _section_player_awards(player, locked, existing_bracket)
 
 
 # ---------------------------------------------------------------------------
@@ -87,7 +89,7 @@ def _stale_hint(stored: list[str], pool: list[str], locked: bool) -> None:
     s = "s" if n > 1 else ""
     verb = "not being" if locked else "won't be"
     suffix = "" if locked else " Re-save to tidy up."
-    st.caption(f"_{n} earlier pick{s} no longer match this round's options — {verb} scored.{suffix}_")
+    st.caption(f"_{n} earlier pick{s} no longer match this round's options, {verb} scored.{suffix}_")
 
 
 def _deadline_header(locked: bool) -> None:
@@ -112,14 +114,14 @@ def _section_group_matches(player: str, locked: bool, existing: dict[str, str]) 
 
     for group in GROUPS:
         group_matches = [m for m in matches if m["Group"] == group]
-        with st.expander(f"Group {group} — {len(group_matches)} matches", expanded=False):
+        with st.expander(f"Group {group} - {len(group_matches)} matches", expanded=False):
             for m in group_matches:
                 options = [m["Team1"], DRAW, m["Team2"]]
                 current = existing.get(m["MatchID"], "")
                 idx = options.index(current) if current in options else None
                 label = f"{m['Team1']} vs {m['Team2']}"
                 if locked:
-                    st.text(f"{label} → {current or '—'}")
+                    st.text(f"{label} → {current or '-'}")
                     new_picks[m["MatchID"]] = current
                 else:
                     pick = st.selectbox(
@@ -158,9 +160,9 @@ def _section_group_standings(player: str, locked: bool, existing: dict[str, list
             c1, c2, c3 = st.columns(3)
 
             if locked:
-                c1.text(f"1st: {first_by_group.get(group, '—')}")
-                c2.text(f"2nd: {second_by_group.get(group, '—')}")
-                c3.text(f"3rd: {third_by_group.get(group, '—')}")
+                c1.text(f"1st: {first_by_group.get(group, '-')}")
+                c2.text(f"2nd: {second_by_group.get(group, '-')}")
+                c3.text(f"3rd: {third_by_group.get(group, '-')}")
                 if group in first_by_group:  new_first[group]  = first_by_group[group]
                 if group in second_by_group: new_second[group] = second_by_group[group]
                 if group in third_by_group:  new_third[group]  = third_by_group[group]
@@ -203,7 +205,7 @@ def _section_group_standings(player: str, locked: bool, existing: dict[str, list
 
 
 # ---------------------------------------------------------------------------
-# 3. R32 — pick 8 of your 12 third-placed picks to fill out the round of 32
+# 3. R32 - pick 8 of your 12 third-placed picks to fill out the round of 32
 # ---------------------------------------------------------------------------
 
 def _section_r32(player: str, locked: bool, existing: dict[str, list[str]]) -> None:
@@ -216,7 +218,7 @@ def _section_r32(player: str, locked: bool, existing: dict[str, list[str]]) -> N
     current = [t for t in stored if t in third_pool]
 
     if locked:
-        st.text("Your 8 third-placed advancers: " + (", ".join(current) if current else "—"))
+        st.text("Your 8 third-placed advancers: " + (", ".join(current) if current else "-"))
         return
 
     if len(third_pool) < 8:
@@ -232,7 +234,7 @@ def _section_r32(player: str, locked: bool, existing: dict[str, list[str]]) -> N
     )
     if st.button("Save R32 picks", key="save_r32", type="primary"):
         if len(picks) != 8:
-            st.error(f"You picked {len(picks)} — must be exactly 8.")
+            st.error(f"You picked {len(picks)}, must be exactly 8.")
         else:
             upsert_bracket_picks(player, "ThirdPlaced", picks)
             invalidate()
@@ -241,7 +243,7 @@ def _section_r32(player: str, locked: bool, existing: dict[str, list[str]]) -> N
 
 
 # ---------------------------------------------------------------------------
-# 4–7. R16 / QF / SF / Final — cascading multiselect
+# 4-7. R16 / QF / SF / Final - cascading multiselect
 # ---------------------------------------------------------------------------
 
 _HEADER_NUMBER = {"R16": "4", "QF": "5", "SF": "6", "Final": "7"}
@@ -266,11 +268,11 @@ def _section_knockout(
     current = [t for t in stored if t in pool]
 
     if locked:
-        st.text("Your picks: " + (", ".join(current) if current else "—"))
+        st.text("Your picks: " + (", ".join(current) if current else "-"))
         return
 
     if len(pool) < count:
-        st.info(f"Save your {prev_label} first — you need at least {count} options here to proceed.")
+        st.info(f"Save your {prev_label} first, you need at least {count} options here to proceed.")
         return
 
     picks = st.multiselect(
@@ -282,7 +284,7 @@ def _section_knockout(
     )
     if st.button(f"Save {label}", key=f"save_{stage}", type="primary"):
         if len(picks) != count:
-            st.error(f"You picked {len(picks)} — must be exactly {count}.")
+            st.error(f"You picked {len(picks)}, must be exactly {count}.")
         else:
             upsert_bracket_picks(player, stage, picks)
             invalidate()
@@ -294,6 +296,34 @@ def _section_knockout(
 # 8. Champion
 # ---------------------------------------------------------------------------
 
+def _section_player_awards(player: str, locked: bool, existing: dict[str, list[str]]) -> None:
+    st.header("9. Player Awards")
+    st.caption(
+        "Type the player's name for each award. "
+        "Matching is lenient - case, accents, and punctuation are ignored."
+    )
+
+    cur_boot = (existing.get("GoldenBoot") or [""])[0]
+    cur_ball = (existing.get("GoldenBall") or [""])[0]
+
+    if locked:
+        c1, c2 = st.columns(2)
+        c1.text(f"Golden Boot (top scorer): {cur_boot or '-'}")
+        c2.text(f"Golden Ball (best player): {cur_ball or '-'}")
+        return
+
+    c1, c2 = st.columns(2)
+    boot = c1.text_input("Golden Boot (top scorer)", value=cur_boot, key="award_boot", placeholder="e.g. Kylian Mbappé")
+    ball = c2.text_input("Golden Ball (best player)", value=cur_ball, key="award_ball", placeholder="e.g. Lionel Messi")
+
+    if st.button("Save awards", key="save_awards", type="primary"):
+        upsert_bracket_picks(player, "GoldenBoot", [boot.strip()] if boot.strip() else [])
+        upsert_bracket_picks(player, "GoldenBall", [ball.strip()] if ball.strip() else [])
+        invalidate()
+        st.success("Saved.")
+        st.rerun()
+
+
 def _section_champion(player: str, locked: bool, existing: dict[str, list[str]], *, pool: list[str]) -> None:
     st.header("8. Champion")
     st.caption("Pick one of your two finalists. 10 pts if you nail it.")
@@ -303,7 +333,7 @@ def _section_champion(player: str, locked: bool, existing: dict[str, list[str]],
     current = stored[0] if stored and stored[0] in pool else None
 
     if locked:
-        st.text(f"Your pick: {current or '—'}")
+        st.text(f"Your pick: {current or '-'}")
         return
 
     if not pool:

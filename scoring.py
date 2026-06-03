@@ -1,6 +1,9 @@
 """Scoring engine. Pure functions: predictions in, points out."""
 from __future__ import annotations
 
+import re
+import unicodedata
+
 import pandas as pd
 
 from config import GROUPS, SCORING, TAB_PRED_BRACKET, TAB_PRED_MATCHES
@@ -15,7 +18,29 @@ from sheets_client import (
 CATEGORY_COLUMNS = [
     "Matches", "Group 1st", "Group 2nd", "R32",
     "R16", "QF", "SF", "Final", "Champion",
+    "Golden Boot", "Golden Ball",
 ]
+
+
+def _normalise(s: str) -> str:
+    """Lowercase, strip accents, drop punctuation, collapse and trim whitespace.
+
+    "Mbappé", "mbappe", "MBAPPE " all collapse to "mbappe".
+    Returns "" for None/empty/whitespace-only input.
+    """
+    if not s:
+        return ""
+    s = unicodedata.normalize("NFKD", s)
+    s = "".join(c for c in s if not unicodedata.combining(c))
+    s = s.lower()
+    s = re.sub(r"[^\w\s]", " ", s, flags=re.UNICODE)
+    return " ".join(s.split())
+
+
+def _score_award(player_pick: str, actual: str, points: int) -> int:
+    p = _normalise(player_pick or "")
+    a = _normalise(actual or "")
+    return points if p and a and p == a else 0
 
 
 def _player_matches_score(player_picks: dict[str, str], results: dict[str, str]) -> int:
@@ -131,20 +156,33 @@ def compute_scores() -> pd.DataFrame:
         if player_champ and player_champ in eff_final and actual_champ and actual_champ[0] == player_champ:
             champion_pts = SCORING["champion"]
 
-        total = matches_pts + first_pts + second_pts + r32_pts + r16_pts + qf_pts + sf_pts + final_pts + champion_pts
+        pb_boot = (player_b.get("GoldenBoot") or [""])[0]
+        pb_ball = (player_b.get("GoldenBall") or [""])[0]
+        ab_boot = (bracket.get("GoldenBoot")  or [""])[0]
+        ab_ball = (bracket.get("GoldenBall")  or [""])[0]
+        boot_pts = _score_award(pb_boot, ab_boot, SCORING["golden_boot"])
+        ball_pts = _score_award(pb_ball, ab_ball, SCORING["golden_ball"])
+
+        total = (
+            matches_pts + first_pts + second_pts
+            + r32_pts + r16_pts + qf_pts + sf_pts + final_pts + champion_pts
+            + boot_pts + ball_pts
+        )
 
         rows.append({
-            "Player":    name,
-            "Matches":   matches_pts,
-            "Group 1st": first_pts,
-            "Group 2nd": second_pts,
-            "R32":       r32_pts,
-            "R16":       r16_pts,
-            "QF":        qf_pts,
-            "SF":        sf_pts,
-            "Final":     final_pts,
-            "Champion":  champion_pts,
-            "Total":     total,
+            "Player":      name,
+            "Matches":     matches_pts,
+            "Group 1st":   first_pts,
+            "Group 2nd":   second_pts,
+            "R32":         r32_pts,
+            "R16":         r16_pts,
+            "QF":          qf_pts,
+            "SF":          sf_pts,
+            "Final":       final_pts,
+            "Champion":    champion_pts,
+            "Golden Boot": boot_pts,
+            "Golden Ball": ball_pts,
+            "Total":       total,
         })
 
     df = pd.DataFrame(rows)

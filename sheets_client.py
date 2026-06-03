@@ -63,7 +63,7 @@ def _ws(tab: str) -> gspread.Worksheet:
             ws.update("A1", [header])
         return ws
     # Tab exists but row 1 may be empty (user pre-created the tab without
-    # typing a header). Write the expected header in that case — this never
+    # typing a header). Write the expected header in that case - this never
     # overwrites existing data since we only act when row 1 is empty.
     if header and not ws.row_values(1):
         ws.update("A1", [header])
@@ -110,7 +110,7 @@ def active_players() -> pd.DataFrame:
     df = read_df("Players")
     if df.empty:
         return df
-    # Normalise "Active" — accept TRUE/True/true/1/yes
+    # Normalise "Active" - accept TRUE/True/true/1/yes
     df["_active"] = df["Active"].astype(str).str.strip().str.lower().isin(
         {"true", "1", "yes", "y"}
     )

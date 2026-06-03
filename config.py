@@ -35,6 +35,9 @@ TEAM_TO_GROUP: dict[str, str] = {
 
 DRAW = "Draw"
 
+GOLDEN_BOOT_POINTS = 5
+GOLDEN_BALL_POINTS = 5
+
 SCORING: dict[str, int] = {
     "group_match": 1,
     "group_first": 2,
@@ -45,6 +48,8 @@ SCORING: dict[str, int] = {
     "sf": 5,
     "final": 7,
     "champion": 10,
+    "golden_boot": GOLDEN_BOOT_POINTS,
+    "golden_ball": GOLDEN_BALL_POINTS,
 }
 
 # All predictions share one deadline. Once it passes, the whole predictions

@@ -107,7 +107,7 @@ def _match_results_section() -> None:
     st.subheader("Enter actual match results")
     matches_df = read_df(TAB_MATCHES)
     if matches_df.empty:
-        st.info("No matches yet — go to Setup and seed the matches first.")
+        st.info("No matches yet, go to Setup and seed the matches first.")
         return
     if not MATCH_COLS.issubset(set(matches_df.columns)):
         st.error(
@@ -151,13 +151,13 @@ def _standings_section() -> None:
             st.markdown(f"**Group {group}**")
             c1, c2, c3 = st.columns(3)
             first_idx  = teams.index(cur.get("First"))  if cur.get("First")  in teams else None
-            f = c1.selectbox("1st",   options=teams, index=first_idx,  key=f"std1::{group}", placeholder="—")
+            f = c1.selectbox("1st",   options=teams, index=first_idx,  key=f"std1::{group}", placeholder="-")
             opts_2 = [t for t in teams if t != f]
             second_idx = opts_2.index(cur.get("Second")) if cur.get("Second") in opts_2 else None
-            s = c2.selectbox("2nd",   options=opts_2, index=second_idx, key=f"std2::{group}", placeholder="—")
+            s = c2.selectbox("2nd",   options=opts_2, index=second_idx, key=f"std2::{group}", placeholder="-")
             opts_3 = [t for t in teams if t not in (f, s)]
             third_idx  = opts_3.index(cur.get("Third"))  if cur.get("Third")  in opts_3 else None
-            t = c3.selectbox("3rd",   options=opts_3, index=third_idx,  key=f"std3::{group}", placeholder="—")
+            t = c3.selectbox("3rd",   options=opts_3, index=third_idx,  key=f"std3::{group}", placeholder="-")
             rows.append({"Group": group, "First": f or "", "Second": s or "", "Third": t or ""})
 
     if st.button("Save all standings", type="primary"):
@@ -201,13 +201,27 @@ def _knockout_section() -> None:
         st.info("Enter finalists first.")
     else:
         idx = finalists.index(champ_current) if champ_current in finalists else None
-        pick = st.selectbox("Actual champion", options=finalists, index=idx, key="admin_champ", placeholder="—")
+        pick = st.selectbox("Actual champion", options=finalists, index=idx, key="admin_champ", placeholder="-")
         if st.button("Save champion", key="admin_save_champ", type="primary"):
             if pick:
                 write_actual_bracket_round("Champion", [pick])
                 invalidate()
                 st.success("Saved.")
                 st.rerun()
+
+    st.divider()
+    st.markdown("**Player Awards**")
+    cur_boot = (bracket.get("GoldenBoot") or [""])[0]
+    cur_ball = (bracket.get("GoldenBall") or [""])[0]
+    c1, c2 = st.columns(2)
+    new_boot = c1.text_input("Golden Boot (top scorer)", value=cur_boot, key="admin_award_boot")
+    new_ball = c2.text_input("Golden Ball (best player)", value=cur_ball, key="admin_award_ball")
+    if st.button("Save awards", key="admin_save_awards", type="primary"):
+        write_actual_bracket_round("GoldenBoot", [new_boot.strip()] if new_boot.strip() else [])
+        write_actual_bracket_round("GoldenBall", [new_ball.strip()] if new_ball.strip() else [])
+        invalidate()
+        st.success("Saved awards.")
+        st.rerun()
 
 
 def _editable_multiselect(round_key: str, label: str, pool: list[str], count: int, bracket: dict[str, list[str]]) -> None:
@@ -223,7 +237,7 @@ def _editable_multiselect(round_key: str, label: str, pool: list[str], count: in
     )
     if st.button(f"Save {round_key}", key=f"admin_save_round::{round_key}", type="primary"):
         if len(picks) != count:
-            st.error(f"You picked {len(picks)} — must be exactly {count}.")
+            st.error(f"You picked {len(picks)}, must be exactly {count}.")
         else:
             write_actual_bracket_round(round_key, picks)
             invalidate()
