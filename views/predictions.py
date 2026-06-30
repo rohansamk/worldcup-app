@@ -24,7 +24,11 @@ import streamlit as st
 
 from config import ALL_TEAMS, DISPLAY_TZ, DISPLAY_TZ_LABEL, DRAW, GROUPS, SCORING, TEAM_TO_GROUP
 from matches import generate_group_matches
+from scoring import _normalise
 from sheets_client import (
+    actual_bracket,
+    actual_match_results,
+    actual_standings,
     invalidate,
     is_locked,
     player_bracket_picks,
@@ -33,6 +37,49 @@ from sheets_client import (
     upsert_bracket_picks,
     upsert_match_predictions,
 )
+
+
+# ---------------------------------------------------------------------------
+# Result colouring (a player only ever sees their OWN picks coloured)
+#
+# Three states, deliberately distinct:
+#   correct -> green   (admin has entered the actual result AND the pick matches)
+#   wrong   -> red     (admin has entered the actual result AND the pick is a miss)
+#   pending -> neutral (admin has NOT entered the result yet - never red)
+# A pick that hasn't been decided/entered is ALWAYS pending, never wrong, so a
+# team that simply hasn't been entered yet is never shown red or counted against
+# the player. This mirrors scoring.py, where unentered results contribute zero.
+# ---------------------------------------------------------------------------
+
+def _chip(team: str, status: str) -> str:
+    """Wrap a team/pick in Streamlit colour markdown for the given status."""
+    if not team:
+        return "-"
+    if status == "correct":
+        return f":green[{team}]"
+    if status == "wrong":
+        return f":red[{team}]"
+    return team  # pending / neutral
+
+
+def _slot_status(pick: str, actual: str) -> str:
+    """Single-slot pick (match winner, group position, champion) vs one actual."""
+    if not actual:
+        return "pending"
+    return "correct" if _normalise(pick) == _normalise(actual) else "wrong"
+
+
+def _set_status(team: str, actual_set: set[str], complete: bool) -> str:
+    """One team within a knockout SET round (R32/R16/QF/SF/Final).
+
+    A team that advanced is green. Otherwise it stays PENDING until the round is
+    complete (the admin has entered the full count) - only then can we be sure a
+    pick is a genuine miss, so only then does it go red. With a partially-entered
+    round, a not-yet-entered pick is never shown red and never scored against.
+    """
+    if team in actual_set:
+        return "correct"
+    return "wrong" if complete else "pending"
 
 
 def render() -> None:
@@ -111,6 +158,7 @@ def _section_group_matches(player: str, locked: bool, existing: dict[str, str]) 
 
     matches = generate_group_matches()
     new_picks: dict[str, str] = {}
+    results = actual_match_results() if locked else {}
 
     for group in GROUPS:
         group_matches = [m for m in matches if m["Group"] == group]
@@ -121,7 +169,8 @@ def _section_group_matches(player: str, locked: bool, existing: dict[str, str]) 
                 idx = options.index(current) if current in options else None
                 label = f"{m['Team1']} vs {m['Team2']}"
                 if locked:
-                    st.text(f"{label} → {current or '-'}")
+                    status = _slot_status(current, results.get(m["MatchID"], "")) if current else "pending"
+                    st.markdown(f"{label} → {_chip(current, status)}")
                     new_picks[m["MatchID"]] = current
                 else:
                     pick = st.selectbox(
@@ -150,6 +199,8 @@ def _section_group_standings(player: str, locked: bool, existing: dict[str, list
     second_by_group = {TEAM_TO_GROUP[t]: t for t in existing.get("Group2nd", []) if t in TEAM_TO_GROUP}
     third_by_group  = {TEAM_TO_GROUP[t]: t for t in existing.get("Group3rd", []) if t in TEAM_TO_GROUP}
 
+    standings = actual_standings() if locked else {}
+
     new_first:  dict[str, str] = {}
     new_second: dict[str, str] = {}
     new_third:  dict[str, str] = {}
@@ -160,9 +211,11 @@ def _section_group_standings(player: str, locked: bool, existing: dict[str, list
             c1, c2, c3 = st.columns(3)
 
             if locked:
-                c1.text(f"1st: {first_by_group.get(group, '-')}")
-                c2.text(f"2nd: {second_by_group.get(group, '-')}")
-                c3.text(f"3rd: {third_by_group.get(group, '-')}")
+                actual = standings.get(group, {})
+                p1, p2, p3 = first_by_group.get(group, ""), second_by_group.get(group, ""), third_by_group.get(group, "")
+                c1.markdown("1st: " + _chip(p1 or "-", _slot_status(p1, actual.get("First", "")) if p1 else "pending"))
+                c2.markdown("2nd: " + _chip(p2 or "-", _slot_status(p2, actual.get("Second", "")) if p2 else "pending"))
+                c3.markdown("3rd: " + _chip(p3 or "-", _slot_status(p3, actual.get("Third", "")) if p3 else "pending"))
                 if group in first_by_group:  new_first[group]  = first_by_group[group]
                 if group in second_by_group: new_second[group] = second_by_group[group]
                 if group in third_by_group:  new_third[group]  = third_by_group[group]
@@ -218,7 +271,10 @@ def _section_r32(player: str, locked: bool, existing: dict[str, list[str]]) -> N
     current = [t for t in stored if t in third_pool]
 
     if locked:
-        st.text("Your 8 third-placed advancers: " + (", ".join(current) if current else "-"))
+        actual_set = set(actual_bracket().get("ThirdPlaced", []))
+        complete = len(actual_set) >= 8
+        chips = [_chip(t, _set_status(t, actual_set, complete)) for t in current]
+        st.markdown("Your 8 third-placed advancers: " + (", ".join(chips) if chips else "-"))
         return
 
     if len(third_pool) < 8:
@@ -273,7 +329,10 @@ def _section_knockout(
     current = [t for t in stored if t in pool]
 
     if locked:
-        st.text("Your picks: " + (", ".join(current) if current else "-"))
+        actual_set = set(actual_bracket().get(stage, []))
+        complete = len(actual_set) >= count
+        chips = [_chip(t, _set_status(t, actual_set, complete)) for t in current]
+        st.markdown("Your picks: " + (", ".join(chips) if chips else "-"))
         return
 
     if len(pool) < count:
@@ -312,9 +371,14 @@ def _section_player_awards(player: str, locked: bool, existing: dict[str, list[s
     cur_ball = (existing.get("GoldenBall") or [""])[0]
 
     if locked:
+        actual = actual_bracket()
+        act_boot = (actual.get("GoldenBoot") or [""])[0]
+        act_ball = (actual.get("GoldenBall") or [""])[0]
+        boot_status = _slot_status(cur_boot, act_boot) if cur_boot else "pending"
+        ball_status = _slot_status(cur_ball, act_ball) if cur_ball else "pending"
         c1, c2 = st.columns(2)
-        c1.text(f"Golden Boot (top scorer): {cur_boot or '-'}")
-        c2.text(f"Golden Ball (best player): {cur_ball or '-'}")
+        c1.markdown("Golden Boot (top scorer): " + _chip(cur_boot or "-", boot_status))
+        c2.markdown("Golden Ball (best player): " + _chip(cur_ball or "-", ball_status))
         return
 
     c1, c2 = st.columns(2)
@@ -338,7 +402,9 @@ def _section_champion(player: str, locked: bool, existing: dict[str, list[str]],
     current = stored[0] if stored and stored[0] in pool else None
 
     if locked:
-        st.text(f"Your pick: {current or '-'}")
+        actual_champ = (actual_bracket().get("Champion") or [""])[0]
+        status = _slot_status(current, actual_champ) if current else "pending"
+        st.markdown(f"Your pick: {_chip(current or '-', status)}")
         return
 
     if not pool:

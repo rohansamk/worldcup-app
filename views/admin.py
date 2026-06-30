@@ -173,7 +173,10 @@ def _standings_section() -> None:
 
 def _knockout_section() -> None:
     st.subheader("Knockout actuals")
-    st.caption("Enter who actually advanced at each stage. ThirdPlaced is the 8 best third-placed teams used to complete the R32.")
+    st.caption(
+        "Enter who actually advanced at each stage. ThirdPlaced is the 8 best third-placed teams used to complete the R32. "
+        "You can save a partial set as teams qualify over several days and add more later - you just can't enter more than the round's max."
+    )
     bracket = actual_bracket()
     standings = actual_standings()
 
@@ -225,21 +228,24 @@ def _knockout_section() -> None:
 
 
 def _editable_multiselect(round_key: str, label: str, pool: list[str], count: int, bracket: dict[str, list[str]]) -> None:
-    st.markdown(f"**{label}** ({count} teams)")
+    st.markdown(f"**{label}** (up to {count} teams)")
     if not pool:
         st.info(f"Fill in the previous round first to populate the pool.")
         return
     current = [t for t in bracket.get(round_key, []) if t in pool]
     picks = st.multiselect(
-        f"Pick exactly {count}",
+        f"Pick up to {count} (save fewer now, add more later)",
         options=pool, default=current, max_selections=count,
         key=f"admin_round::{round_key}", label_visibility="collapsed",
     )
     if st.button(f"Save {round_key}", key=f"admin_save_round::{round_key}", type="primary"):
-        if len(picks) != count:
-            st.error(f"You picked {len(picks)}, must be exactly {count}.")
+        # Allow saving a partial set (teams qualify over several days), but never
+        # more than the round's max. max_selections already caps the widget; this
+        # guard is the explicit, clearly-messaged backstop.
+        if len(picks) > count:
+            st.error(f"You selected {len(picks)}, but {round_key} can hold at most {count}. Remove some and save again.")
         else:
             write_actual_bracket_round(round_key, picks)
             invalidate()
-            st.success(f"Saved {round_key}.")
+            st.success(f"Saved {len(picks)} of up to {count} {round_key} team(s).")
             st.rerun()
