@@ -3,7 +3,7 @@ import streamlit as st
 
 from views import admin, leaderboard, login, predictions
 
-st.set_page_config(page_title="World Cup 2026 Prediction League", page_icon="⚽", layout="wide")
+st.set_page_config(page_title="The Great Own Brands 2026 World Cup Fantasy Football competition!", page_icon="⚽", layout="wide")
 
 
 def _sidebar() -> str:
